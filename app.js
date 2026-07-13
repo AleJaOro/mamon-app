@@ -1,347 +1,357 @@
-'use strict';
+/* =========================================================
+   CONFIGURACIÓN — edita aquí el precio por kilo
+   ========================================================= */
+const PRECIO_POR_KG = 1200;
+const DIAS_AVISO_COBRO = 3;
+const STORAGE_KEY = 'mamones_pedidos';
 
 /* =========================================================
-   CONFIGURACIÓN — edita estos valores según tu negocio
+   ESTADO / ALMACENAMIENTO
    ========================================================= */
-const PRECIO_KG    = 1200;   // colones por kilo
-const STOCK_INICIAL = 30;    // kg disponibles hoy
-const DIAS_AVISO   = 3;      // días para marcar "Aviso: Cobrar"
-const STORAGE_KEY  = 'mamones_pedidos_v1';
-
-/* =========================================================
-   ALMACENAMIENTO (localStorage)
-   ========================================================= */
-function loadPedidos(){
+function cargarPedidos(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
   }catch(e){
-    console.error('Error leyendo pedidos', e);
     return [];
   }
 }
-function savePedidos(pedidos){
+function guardarPedidos(pedidos){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(pedidos));
 }
+let pedidos = cargarPedidos();
 
 /* =========================================================
-   UTILIDADES
+   NAVEGACIÓN ENTRE VISTAS
    ========================================================= */
+const tabBtns = document.querySelectorAll('.tab-btn');
+const views = document.querySelectorAll('.view');
+
+tabBtns.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    tabBtns.forEach(b=>b.classList.remove('active'));
+    views.forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-' + btn.dataset.view).classList.add('active');
+
+    if(btn.dataset.view === 'pedidos') renderPedidos();
+    if(btn.dataset.view === 'stats') renderStats();
+  });
+});
+
+/* =========================================================
+   VISTA VENTA (HOME)
+   ========================================================= */
+const clienteInput = document.getElementById('cliente');
+const kgInput = document.getElementById('kg-input');
+const btnSumar = document.getElementById('btn-sumar');
+const btnRestar = document.getElementById('btn-restar');
+const totalPreview = document.getElementById('total-preview');
+const alertaFiado = document.getElementById('alerta-fiado');
+const formVenta = document.getElementById('form-venta');
+
 function formatoColones(monto){
   return '₡' + Math.round(monto).toLocaleString('es-CR');
 }
-function formatoFecha(ts){
-  return new Date(ts).toLocaleString('es-CR', {
-    day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'
-  });
-}
-function normalizarNombre(nombre){
-  return nombre.trim().toLowerCase();
-}
-function stockDisponible(pedidos, excluirId){
-  const vendido = pedidos
-    .filter(p => p.id !== excluirId)
-    .reduce((sum, p) => sum + p.kg, 0);
-  return Math.round((STOCK_INICIAL - vendido) * 100) / 100;
-}
-function mostrarToast(mensaje){
-  const toast = document.getElementById('toast');
-  toast.textContent = mensaje;
-  toast.classList.remove('hidden');
-  clearTimeout(mostrarToast._t);
-  mostrarToast._t = setTimeout(() => toast.classList.add('hidden'), 2200);
+
+function actualizarTotalPreview(){
+  const kg = parseFloat(kgInput.value) || 0;
+  totalPreview.textContent = formatoColones(kg * PRECIO_POR_KG);
 }
 
-/* =========================================================
-   MODAL DE CONFIRMACIÓN GENÉRICO
-   ========================================================= */
-const modalOverlay = document.getElementById('modalOverlay');
-const modalText    = document.getElementById('modalText');
-const modalConfirm = document.getElementById('modalConfirm');
-const modalCancel  = document.getElementById('modalCancel');
-let modalOnConfirm = null;
-
-function pedirConfirmacion(texto, onConfirm){
-  modalText.textContent = texto;
-  modalOnConfirm = onConfirm;
-  modalOverlay.classList.remove('hidden');
-}
-function cerrarModal(){
-  modalOverlay.classList.add('hidden');
-  modalOnConfirm = null;
-}
-modalConfirm.addEventListener('click', () => {
-  const fn = modalOnConfirm;
-  cerrarModal();
-  if (fn) fn();
+btnSumar.addEventListener('click', ()=>{
+  kgInput.value = (parseFloat(kgInput.value || 0) + 0.5).toFixed(1).replace(/\.0$/, '');
+  actualizarTotalPreview();
 });
-modalCancel.addEventListener('click', cerrarModal);
-modalOverlay.addEventListener('click', (e) => {
-  if (e.target === modalOverlay) cerrarModal();
+btnRestar.addEventListener('click', ()=>{
+  const nuevo = Math.max(0.5, parseFloat(kgInput.value || 0) - 0.5);
+  kgInput.value = nuevo.toFixed(1).replace(/\.0$/, '');
+  actualizarTotalPreview();
 });
+kgInput.addEventListener('input', actualizarTotalPreview);
 
-/* =========================================================
-   NAVEGACIÓN ENTRE PESTAÑAS
-   ========================================================= */
-const views = {
-  vender:  document.getElementById('viewVender'),
-  pedidos: document.getElementById('viewPedidos'),
-};
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    Object.entries(views).forEach(([key, el]) => {
-      el.classList.toggle('hidden', key !== btn.dataset.view);
-    });
-    if (btn.dataset.view === 'pedidos') renderPedidos();
-  });
-});
-
-/* =========================================================
-   VISTA: VENDER
-   ========================================================= */
-const clienteInput  = document.getElementById('clienteInput');
-const fiadoAlert    = document.getElementById('fiadoAlert');
-const kgInput       = document.getElementById('kgInput');
-const btnMinus      = document.getElementById('btnMinus');
-const btnPlus       = document.getElementById('btnPlus');
-const totalDisplay  = document.getElementById('totalDisplay');
-const btnRegistrar  = document.getElementById('btnRegistrar');
-const stockPill     = document.getElementById('stockPill');
-
-const PASO_KG = 0.5;
-const KG_MIN  = 0.5;
-
-function getKg(){
-  const v = parseFloat(kgInput.value);
-  return isNaN(v) || v < 0 ? 0 : v;
-}
-function setKg(valor){
-  const v = Math.max(0, Math.round(valor * 100) / 100);
-  kgInput.value = v;
-  actualizarTotal();
-}
-function actualizarTotal(){
-  totalDisplay.textContent = formatoColones(getKg() * PRECIO_KG);
-  btnMinus.disabled = getKg() <= KG_MIN;
-}
-btnMinus.addEventListener('click', () => setKg(getKg() - PASO_KG));
-btnPlus.addEventListener('click',  () => setKg(getKg() + PASO_KG));
-kgInput.addEventListener('input', actualizarTotal);
-kgInput.addEventListener('blur', () => {
-  if (getKg() < KG_MIN) setKg(KG_MIN);
-});
-
-function actualizarStockPill(){
-  const pedidos = loadPedidos();
-  const disponible = stockDisponible(pedidos);
-  stockPill.textContent = `Stock: ${disponible} kg`;
-  stockPill.classList.toggle('low', disponible <= 5);
-}
-
-/* --- Filtro de fiados en vivo --- */
-clienteInput.addEventListener('input', () => {
-  const nombre = clienteInput.value;
-  if (!nombre.trim()){
-    fiadoAlert.classList.add('hidden');
+// Filtro de fiados: al escribir el nombre, avisa si tiene pendientes
+clienteInput.addEventListener('input', ()=>{
+  const nombre = clienteInput.value.trim().toLowerCase();
+  if(!nombre){
+    alertaFiado.classList.add('oculto');
     return;
   }
-  const pedidos = loadPedidos();
-  const pendientes = pedidos.filter(p =>
-    !p.pagado && normalizarNombre(p.cliente) === normalizarNombre(nombre)
+  const tienePendiente = pedidos.some(p =>
+    p.cliente.trim().toLowerCase() === nombre && p.estado === 'pendiente'
   );
-  if (pendientes.length > 0){
-    const totalDebe = pendientes.reduce((s, p) => s + p.total, 0);
-    fiadoAlert.textContent =
-      `⚠️ ${nombre.trim()} tiene ${pendientes.length} pedido(s) pendiente(s) por ${formatoColones(totalDebe)}.`;
-    fiadoAlert.classList.remove('hidden');
-  } else {
-    fiadoAlert.classList.add('hidden');
-  }
+  alertaFiado.classList.toggle('oculto', !tienePendiente);
 });
 
-/* --- Registrar pedido --- */
-btnRegistrar.addEventListener('click', () => {
+formVenta.addEventListener('submit', (e)=>{
+  e.preventDefault();
   const cliente = clienteInput.value.trim();
-  const kg = getKg();
+  const kg = parseFloat(kgInput.value);
+  if(!cliente || !kg || kg <= 0) return;
 
-  if (!cliente){
-    mostrarToast('Escribe el nombre del cliente');
-    clienteInput.focus();
-    return;
-  }
-  if (kg < KG_MIN){
-    mostrarToast(`La cantidad mínima es ${KG_MIN} kg`);
-    return;
-  }
-  const pedidos = loadPedidos();
-  const disponible = stockDisponible(pedidos);
-  if (kg > disponible){
-    mostrarToast(`Solo quedan ${disponible} kg en stock`);
-    return;
-  }
-
-  const nuevoPedido = {
-    id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+  const total = kg * PRECIO_POR_KG;
+  pedidos.unshift({
+    id: Date.now().toString(),
     cliente,
     kg,
-    total: kg * PRECIO_KG,
-    pagado: false,
-    fecha: Date.now(),
-  };
-  pedidos.push(nuevoPedido);
-  savePedidos(pedidos);
+    precio: PRECIO_POR_KG,
+    total,
+    estado: 'pendiente',
+    fecha: Date.now()
+  });
+  guardarPedidos(pedidos);
 
-  // Limpieza instantánea para el siguiente pedido
+  // Limpiar formulario instantáneamente para el siguiente pedido
   clienteInput.value = '';
-  fiadoAlert.classList.add('hidden');
-  setKg(1);
-  actualizarStockPill();
-  mostrarToast('Pedido registrado ✓');
+  kgInput.value = 1;
+  alertaFiado.classList.add('oculto');
+  actualizarTotalPreview();
   clienteInput.focus();
 });
 
-/* =========================================================
-   VISTA: PEDIDOS
-   ========================================================= */
-const pedidosList = document.getElementById('pedidosList');
-const emptyState  = document.getElementById('emptyState');
-const template    = document.getElementById('pedidoCardTemplate');
-let filtroActual  = 'todos';
+actualizarTotalPreview();
 
-document.getElementById('filterChips').addEventListener('click', (e) => {
-  const chip = e.target.closest('.chip');
-  if (!chip) return;
-  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  chip.classList.add('active');
-  filtroActual = chip.dataset.filter;
-  renderPedidos();
+/* =========================================================
+   MODAL DE CONFIRMACIÓN (reutilizable)
+   ========================================================= */
+const modalOverlay = document.getElementById('modal-confirm');
+const modalTexto = document.getElementById('modal-texto');
+const modalCancelar = document.getElementById('modal-cancelar');
+const modalAceptar = document.getElementById('modal-aceptar');
+let accionPendiente = null;
+
+function pedirConfirmacion(texto, callback){
+  modalTexto.textContent = texto;
+  accionPendiente = callback;
+  modalOverlay.classList.remove('oculto');
+}
+modalCancelar.addEventListener('click', ()=>{
+  modalOverlay.classList.add('oculto');
+  accionPendiente = null;
+});
+modalAceptar.addEventListener('click', ()=>{
+  if(accionPendiente) accionPendiente();
+  modalOverlay.classList.add('oculto');
+  accionPendiente = null;
 });
 
-function diasDesde(ts){
-  return (Date.now() - ts) / (1000 * 60 * 60 * 24);
+/* =========================================================
+   VISTA PEDIDOS
+   ========================================================= */
+const listaPedidosEl = document.getElementById('lista-pedidos');
+const pedidosVacioEl = document.getElementById('pedidos-vacio');
+
+function diasDeAntiguedad(fecha){
+  return (Date.now() - fecha) / (1000 * 60 * 60 * 24);
+}
+
+function formatoFecha(fecha){
+  const d = new Date(fecha);
+  return d.toLocaleDateString('es-CR', { day:'2-digit', month:'2-digit' }) + ' ' +
+         d.toLocaleTimeString('es-CR', { hour:'2-digit', minute:'2-digit' });
 }
 
 function renderPedidos(){
-  const pedidos = loadPedidos()
-    .slice()
-    .sort((a, b) => b.fecha - a.fecha)
-    .filter(p => {
-      if (filtroActual === 'pendiente') return !p.pagado;
-      if (filtroActual === 'pagado') return p.pagado;
-      return true;
-    });
+  pedidos = cargarPedidos();
+  listaPedidosEl.innerHTML = '';
 
-  pedidosList.innerHTML = '';
-  emptyState.classList.toggle('hidden', pedidos.length > 0);
+  if(pedidos.length === 0){
+    listaPedidosEl.appendChild(pedidosVacioEl);
+    pedidosVacioEl.classList.remove('oculto');
+    return;
+  }
+  pedidosVacioEl.classList.add('oculto');
 
-  pedidos.forEach(p => {
-    const node = template.content.firstElementChild.cloneNode(true);
-    node.dataset.id = p.id;
+  pedidos.forEach(p=>{
+    const card = document.createElement('div');
+    card.className = 'pedido-card';
 
-    node.querySelector('.pedido-cliente').textContent = p.cliente;
-    node.querySelector('.pedido-detalle').textContent =
-      `${p.kg} kg · ${formatoColones(p.total)}`;
-    node.querySelector('.pedido-fecha').textContent = formatoFecha(p.fecha);
+    const esAviso = p.estado === 'pendiente' && diasDeAntiguedad(p.fecha) > DIAS_AVISO_COBRO;
 
-    const avisoTag = node.querySelector('.badge.aviso');
-    const esAviso = !p.pagado && diasDesde(p.fecha) > DIAS_AVISO;
-    avisoTag.classList.toggle('hidden', !esAviso);
-
-    const estadoBtn = node.querySelector('.badge-estado');
-    estadoBtn.textContent = p.pagado ? 'Pagado' : 'Pendiente';
-    estadoBtn.classList.add(p.pagado ? 'pagado' : 'pendiente');
-
-    // Prellenar formulario de edición (oculto por defecto)
-    node.querySelector('.edit-cliente').value = p.cliente;
-    node.querySelector('.edit-kg-input').value = p.kg;
-
-    pedidosList.appendChild(node);
+    card.innerHTML = `
+      <div class="pedido-top">
+        <div>
+          <div class="pedido-cliente">${escapeHtml(p.cliente)}</div>
+          <div class="pedido-fecha">${formatoFecha(p.fecha)}</div>
+        </div>
+        <div class="pedido-total">${formatoColones(p.total)}</div>
+      </div>
+      <div class="pedido-detalle">${p.kg} kg × ${formatoColones(p.precio)}</div>
+      <div class="badges">
+        <span class="badge ${p.estado === 'pagado' ? 'badge-pagado' : 'badge-pendiente'}">
+          ${p.estado === 'pagado' ? 'Pagado' : 'Pendiente'}
+        </span>
+        ${esAviso ? '<span class="badge badge-aviso">Aviso: Cobrar</span>' : ''}
+      </div>
+      <div class="pedido-acciones">
+        <button class="btn-mini ${p.estado === 'pagado' ? 'pendiente-btn' : 'pagar'}" data-accion="toggle" data-id="${p.id}">
+          ${p.estado === 'pagado' ? 'Marcar pendiente' : 'Marcar pagado'}
+        </button>
+        <button class="btn-mini borrar" data-accion="borrar" data-id="${p.id}">✕</button>
+      </div>
+    `;
+    listaPedidosEl.appendChild(card);
   });
 }
 
-/* --- Delegación de eventos para tarjetas de pedidos --- */
-pedidosList.addEventListener('click', (e) => {
-  const card = e.target.closest('.pedido-card');
-  if (!card) return;
-  const id = card.dataset.id;
-  const accion = e.target.closest('[data-action]')?.dataset.action;
-  if (!accion) return;
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
-  const pedidos = loadPedidos();
+listaPedidosEl.addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-accion]');
+  if(!btn) return;
+  const id = btn.dataset.id;
   const pedido = pedidos.find(p => p.id === id);
-  if (!pedido) return;
+  if(!pedido) return;
 
-  if (accion === 'toggle-pago'){
-    pedido.pagado = !pedido.pagado;
-    savePedidos(pedidos);
-    renderPedidos();
-    actualizarStockPill();
-    mostrarToast(pedido.pagado ? 'Marcado como pagado' : 'Marcado como pendiente');
-  }
-
-  if (accion === 'edit'){
-    card.querySelector('.edit-form').classList.remove('hidden');
-    card.querySelector('.btn-edit').classList.add('hidden');
-  }
-
-  if (accion === 'cancel-edit'){
-    card.querySelector('.edit-form').classList.add('hidden');
-    card.querySelector('.btn-edit').classList.remove('hidden');
-    // Restaurar valores originales
-    card.querySelector('.edit-cliente').value = pedido.cliente;
-    card.querySelector('.edit-kg-input').value = pedido.kg;
-  }
-
-  if (accion === 'edit-minus' || accion === 'edit-plus'){
-    const kgField = card.querySelector('.edit-kg-input');
-    let v = parseFloat(kgField.value) || 0;
-    v += accion === 'edit-minus' ? -PASO_KG : PASO_KG;
-    kgField.value = Math.max(KG_MIN, Math.round(v * 100) / 100);
-  }
-
-  if (accion === 'save-edit'){
-    const nuevoCliente = card.querySelector('.edit-cliente').value.trim();
-    const nuevoKg = parseFloat(card.querySelector('.edit-kg-input').value);
-
-    if (!nuevoCliente){
-      mostrarToast('El nombre no puede estar vacío');
-      return;
-    }
-    if (isNaN(nuevoKg) || nuevoKg < KG_MIN){
-      mostrarToast(`La cantidad mínima es ${KG_MIN} kg`);
-      return;
-    }
-    const disponible = stockDisponible(pedidos, pedido.id);
-    if (nuevoKg > disponible){
-      mostrarToast(`Solo quedan ${disponible} kg de stock disponibles`);
-      return;
-    }
-
-    pedirConfirmacion('¿Seguro que deseas modificar este pedido?', () => {
-      pedido.cliente = nuevoCliente;
-      pedido.kg = nuevoKg;
-      pedido.total = nuevoKg * PRECIO_KG;
-      savePedidos(pedidos);
+  if(btn.dataset.accion === 'toggle'){
+    pedirConfirmacion('¿Seguro que deseas modificar este pedido?', ()=>{
+      pedido.estado = pedido.estado === 'pagado' ? 'pendiente' : 'pagado';
+      guardarPedidos(pedidos);
       renderPedidos();
-      actualizarStockPill();
-      mostrarToast('Pedido actualizado ✓');
+    });
+  }
+
+  if(btn.dataset.accion === 'borrar'){
+    pedirConfirmacion('¿Seguro que deseas eliminar este pedido?', ()=>{
+      pedidos = pedidos.filter(p => p.id !== id);
+      guardarPedidos(pedidos);
+      renderPedidos();
     });
   }
 });
 
-/* =========================================================
-   INICIALIZACIÓN
-   ========================================================= */
-setKg(1);
-actualizarStockPill();
+/* ===== Enviar por WhatsApp ===== */
+document.getElementById('btn-whatsapp').addEventListener('click', ()=>{
+  pedidos = cargarPedidos();
+  if(pedidos.length === 0){
+    alert('No hay pedidos para enviar.');
+    return;
+  }
+  let texto = '*Lista de pedidos - Mamones*%0a%0a';
+  pedidos.forEach(p=>{
+    texto += `${p.cliente} - ${p.kg}kg - ${formatoColones(p.total)} - ${p.estado === 'pagado' ? 'Pagado' : 'Pendiente'}%0a`;
+  });
+  const url = `https://api.whatsapp.com/send?text=${texto}`;
+  window.open(url, '_blank');
+});
 
-/* Service worker (funciona en local sirviendo por http/https) */
-if ('serviceWorker' in navigator){
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {
-      /* si falla, la app sigue funcionando sin modo offline */
-    });
+/* ===== Exportar PDF ===== */
+document.getElementById('btn-pdf').addEventListener('click', ()=>{
+  pedidos = cargarPedidos();
+  if(pedidos.length === 0){
+    alert('No hay pedidos para exportar.');
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(16);
+  doc.text('Lista de Pedidos - Mamones', 14, 16);
+  doc.setFontSize(10);
+  doc.text(new Date().toLocaleDateString('es-CR'), 14, 22);
+
+  let y = 32;
+  doc.setFontSize(11);
+  doc.text('Cliente', 14, y);
+  doc.text('Kg', 90, y);
+  doc.text('Total', 120, y);
+  doc.text('Estado', 160, y);
+  y += 6;
+  doc.line(14, y - 4, 196, y - 4);
+
+  pedidos.forEach(p=>{
+    if(y > 280){ doc.addPage(); y = 20; }
+    doc.text(String(p.cliente).substring(0, 30), 14, y);
+    doc.text(String(p.kg), 90, y);
+    doc.text(formatoColones(p.total), 120, y);
+    doc.text(p.estado === 'pagado' ? 'Pagado' : 'Pendiente', 160, y);
+    y += 8;
+  });
+
+  doc.save('pedidos-mamones.pdf');
+});
+
+/* =========================================================
+   VISTA ESTADÍSTICAS
+   ========================================================= */
+function renderStats(){
+  pedidos = cargarPedidos();
+
+  const ganancias = pedidos.filter(p=>p.estado === 'pagado').reduce((a,p)=>a + p.total, 0);
+  const faltante = pedidos.filter(p=>p.estado === 'pendiente').reduce((a,p)=>a + p.total, 0);
+  const kilos = pedidos.reduce((a,p)=>a + p.kg, 0);
+
+  document.getElementById('stat-ganancias').textContent = formatoColones(ganancias);
+  document.getElementById('stat-pendiente').textContent = formatoColones(faltante);
+  document.getElementById('stat-kilos').textContent = kilos.toFixed(1).replace(/\.0$/, '') + ' kg';
+  document.getElementById('stat-pedidos').textContent = pedidos.length;
+
+  // Ventas por día (últimos 7 días)
+  const dias = [];
+  for(let i = 6; i >= 0; i--){
+    const fecha = new Date();
+    fecha.setHours(0,0,0,0);
+    fecha.setDate(fecha.getDate() - i);
+    dias.push(fecha);
+  }
+
+  const totalesPorDia = dias.map(fecha=>{
+    const siguiente = new Date(fecha);
+    siguiente.setDate(siguiente.getDate() + 1);
+    const total = pedidos
+      .filter(p => p.fecha >= fecha.getTime() && p.fecha < siguiente.getTime())
+      .reduce((a,p)=>a + p.total, 0);
+    return { fecha, total };
+  });
+
+  const maxDia = Math.max(1, ...totalesPorDia.map(d=>d.total));
+  const statsDiasEl = document.getElementById('stats-dias');
+  statsDiasEl.innerHTML = totalesPorDia.map(d=>{
+    const pct = Math.round((d.total / maxDia) * 100);
+    const label = d.fecha.toLocaleDateString('es-CR', { weekday: 'short' });
+    return `
+      <div class="dia-row">
+        <div class="dia-label">${label}</div>
+        <div class="dia-barra-fondo"><div class="dia-barra" style="width:${pct}%"></div></div>
+        <div class="dia-monto">${formatoColones(d.total)}</div>
+      </div>
+    `;
+  }).join('');
+
+  // Mejores clientes (por total comprado)
+  const porCliente = {};
+  pedidos.forEach(p=>{
+    const key = p.cliente.trim();
+    if(!porCliente[key]) porCliente[key] = { kg: 0, total: 0 };
+    porCliente[key].kg += p.kg;
+    porCliente[key].total += p.total;
+  });
+
+  const topClientes = Object.entries(porCliente)
+    .sort((a,b)=> b[1].total - a[1].total)
+    .slice(0, 5);
+
+  const statsClientesEl = document.getElementById('stats-clientes');
+  if(topClientes.length === 0){
+    statsClientesEl.innerHTML = '<p class="vacio">Sin datos todavía.</p>';
+  }else{
+    statsClientesEl.innerHTML = topClientes.map(([nombre, datos])=>`
+      <div class="cliente-row">
+        <span class="nombre">${escapeHtml(nombre)}</span>
+        <span class="info">${datos.kg.toFixed(1).replace(/\.0$/, '')} kg · ${formatoColones(datos.total)}</span>
+      </div>
+    `).join('');
+  }
+}
+
+/* =========================================================
+   REGISTRO DEL SERVICE WORKER (para instalación como app)
+   ========================================================= */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
   });
 }
