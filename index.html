@@ -2,131 +2,113 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#2F5233">
-<title>Mamones · Registro de ventas</title>
+<!-- Evita el zoom en navegadores móviles -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Mamones App</title>
+
+<!-- PWA: que el navegador la detecte como app instalable -->
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon.svg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#4CAF50">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mamones">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="app">
-
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-fruit">🍈</span>
-      <span class="brand-text">Mamones<br><small>Registro de ventas</small></span>
-    </div>
-    <div class="stock-pill" id="stockPill">Stock: -- kg</div>
-  </header>
-
-  <!-- ================= VISTA: VENDER ================= -->
-  <main id="viewVender" class="view">
-
-    <section class="card">
-      <label for="clienteInput">Cliente</label>
-      <input id="clienteInput" type="text" placeholder="Nombre del cliente" autocomplete="off" maxlength="40">
-      <div id="fiadoAlert" class="fiado-alert hidden" role="alert"></div>
-    </section>
-
-    <section class="counter-card">
-      <p class="counter-label">Cantidad</p>
-      <div class="counter-wrap">
-        <button id="btnMinus" class="counter-btn" aria-label="Restar medio kilo" type="button">−</button>
-        <div class="counter-display">
-          <input id="kgInput" class="kg-input" type="number" step="0.5" min="0.5" inputmode="decimal" value="1">
-          <span class="kg-unit">kg</span>
-        </div>
-        <button id="btnPlus" class="counter-btn" aria-label="Sumar medio kilo" type="button">+</button>
-      </div>
-      <div class="total-row">
-        <span>Total a cobrar</span>
-        <strong id="totalDisplay">₡0</strong>
-      </div>
-    </section>
-
-    <button id="btnRegistrar" class="btn-primary" type="button">Registrar pedido</button>
-  </main>
-
-  <!-- ================= VISTA: PEDIDOS ================= -->
-  <main id="viewPedidos" class="view hidden">
-    <div class="pedidos-header">
-      <h2>Pedidos</h2>
-      <div class="filter-chips" id="filterChips">
-        <button class="chip active" data-filter="todos" type="button">Todos</button>
-        <button class="chip" data-filter="pendiente" type="button">Pendientes</button>
-        <button class="chip" data-filter="pagado" type="button">Pagados</button>
-      </div>
-    </div>
-    <div id="pedidosList" class="pedidos-list"></div>
-    <p id="emptyState" class="empty-state hidden">Todavía no hay pedidos registrados.</p>
-  </main>
-
-  <nav class="tabbar">
-    <button class="tab-btn active" data-view="vender" type="button">
-      <span class="tab-icon">🧺</span><span>Vender</span>
-    </button>
-    <button class="tab-btn" data-view="pedidos" type="button">
-      <span class="tab-icon">📋</span><span>Pedidos</span>
-    </button>
+<!-- ===== NAV SUPERIOR (solo texto, sin iconos) ===== -->
+<header class="topbar">
+  <div class="brand">🍈 Mamones</div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-view="venta">Venta</button>
+    <button class="tab-btn" data-view="pedidos">Pedidos</button>
+    <button class="tab-btn" data-view="stats">Estadísticas</button>
   </nav>
+</header>
 
-</div>
+<main id="app">
 
-<!-- Modal de confirmación -->
-<div id="modalOverlay" class="modal-overlay hidden">
-  <div class="modal">
-    <p id="modalText">¿Seguro que deseas modificar este pedido?</p>
-    <div class="modal-actions">
-      <button id="modalCancel" class="btn-secondary" type="button">Cancelar</button>
-      <button id="modalConfirm" class="btn-primary" type="button">Confirmar</button>
+  <!-- ===== VISTA: VENTA (HOME) ===== -->
+  <section id="view-venta" class="view active">
+    <form id="form-venta">
+
+      <label class="field-label" for="cliente">Cliente</label>
+      <input type="text" id="cliente" placeholder="Nombre del cliente" autocomplete="off" required>
+      <div id="alerta-fiado" class="alerta-fiado oculto">⚠️ Este cliente tiene un pedido pendiente por cobrar</div>
+
+      <div class="kg-selector">
+        <button type="button" id="btn-restar" class="btn-kg" aria-label="Restar 0.5 kg">−</button>
+        <input type="number" id="kg-input" step="0.5" min="0.5" value="1" inputmode="decimal">
+        <button type="button" id="btn-sumar" class="btn-kg" aria-label="Sumar 0.5 kg">+</button>
+      </div>
+      <div class="kg-unidad">kg</div>
+
+      <div class="total-preview">
+        Total: <span id="total-preview">₡0</span>
+      </div>
+
+      <button type="submit" class="btn-principal">Registrar Pedido</button>
+    </form>
+  </section>
+
+  <!-- ===== VISTA: PEDIDOS ===== -->
+  <section id="view-pedidos" class="view">
+    <div class="acciones-pedidos">
+      <button id="btn-whatsapp" class="btn-secundario">Enviar por WhatsApp</button>
+      <button id="btn-pdf" class="btn-secundario">Exportar PDF</button>
+    </div>
+    <div id="lista-pedidos" class="lista-pedidos">
+      <p class="vacio" id="pedidos-vacio">Aún no hay pedidos registrados.</p>
+    </div>
+  </section>
+
+  <!-- ===== VISTA: ESTADÍSTICAS ===== -->
+  <section id="view-stats" class="view">
+    <div class="stats-grid">
+      <div class="stat-card ganancia">
+        <div class="stat-label">Ganancias (cobrado)</div>
+        <div class="stat-value" id="stat-ganancias">₡0</div>
+      </div>
+      <div class="stat-card pendiente">
+        <div class="stat-label">Faltante por cobrar</div>
+        <div class="stat-value" id="stat-pendiente">₡0</div>
+      </div>
+      <div class="stat-card kilos">
+        <div class="stat-label">Kilos vendidos</div>
+        <div class="stat-value" id="stat-kilos">0 kg</div>
+      </div>
+      <div class="stat-card pedidos-count">
+        <div class="stat-label">Total de pedidos</div>
+        <div class="stat-value" id="stat-pedidos">0</div>
+      </div>
+    </div>
+
+    <h3 class="stats-subtitulo">Ventas por día (últimos 7 días)</h3>
+    <div id="stats-dias" class="stats-dias"></div>
+
+    <h3 class="stats-subtitulo">Mejores clientes</h3>
+    <div id="stats-clientes" class="stats-clientes"></div>
+  </section>
+
+</main>
+
+<!-- ===== MODAL DE CONFIRMACIÓN ===== -->
+<div id="modal-confirm" class="modal-overlay oculto">
+  <div class="modal-box">
+    <p id="modal-texto">¿Seguro que deseas modificar este pedido?</p>
+    <div class="modal-botones">
+      <button id="modal-cancelar" class="btn-modal btn-cancelar">Cancelar</button>
+      <button id="modal-aceptar" class="btn-modal btn-aceptar">Confirmar</button>
     </div>
   </div>
 </div>
 
-<div id="toast" class="toast hidden"></div>
-
-<template id="pedidoCardTemplate">
-  <div class="pedido-card">
-    <div class="pedido-main">
-      <div class="pedido-info">
-        <span class="pedido-cliente"></span>
-        <span class="pedido-detalle"></span>
-        <span class="pedido-fecha"></span>
-      </div>
-      <div class="pedido-badges">
-        <span class="badge aviso hidden">Aviso: Cobrar</span>
-        <button class="badge-estado" data-action="toggle-pago" type="button"></button>
-      </div>
-    </div>
-
-    <button class="btn-edit" data-action="edit" type="button">Editar pedido</button>
-
-    <div class="edit-form hidden">
-      <label>Cliente</label>
-      <input class="edit-cliente" type="text" maxlength="40">
-      <label>Kilos</label>
-      <div class="counter-wrap small">
-        <button class="counter-btn small" data-action="edit-minus" type="button">−</button>
-        <div class="counter-display">
-          <input class="edit-kg-input kg-input" type="number" step="0.5" min="0.5" inputmode="decimal">
-          <span class="kg-unit">kg</span>
-        </div>
-        <button class="counter-btn small" data-action="edit-plus" type="button">+</button>
-      </div>
-      <div class="edit-actions">
-        <button class="btn-secondary" data-action="cancel-edit" type="button">Cancelar</button>
-        <button class="btn-primary" data-action="save-edit" type="button">Guardar cambios</button>
-      </div>
-    </div>
-  </div>
-</template>
-
+<!-- Librería para generar PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
