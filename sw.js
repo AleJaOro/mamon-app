@@ -5,27 +5,28 @@ const ARCHIVOS = [
   './style.css',
   './app.js',
   './manifest.json',
-  './icon.svg'
+  './icon-192.png',
+  './icon-512.png'
 ];
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', (event)=>{
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ARCHIVOS))
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ARCHIVOS))
   );
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', (event)=>{
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    caches.keys().then(nombres=>
+      Promise.all(nombres.filter(n => n !== CACHE_NAME).map(n => caches.delete(n)))
     )
   );
   self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', (event)=>{
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    caches.match(event.request).then(respuesta => respuesta || fetch(event.request))
   );
 });
