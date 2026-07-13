@@ -1,0 +1,422 @@
+/* =========================================================
+   TOKENS — paleta inspirada en el mamón: piel verde jungla,
+   pulpa rosa-coral, y un fondo cálido tipo mercado matutino.
+   ========================================================= */
+:root{
+  --bg:        #F5F2E6;   /* fondo cálido, cáscara madura */
+  --surface:   #FFFFFF;
+  --ink:       #1F3A2E;   /* verde muy oscuro, casi negro */
+  --ink-soft:  #5B6E62;
+  --green:     #2F5233;   /* verde piel de mamón */
+  --green-dark:#1D3821;
+  --green-soft:#E4ECE2;
+  --coral:     #E9536B;   /* pulpa del mamón */
+  --coral-soft:#FCE3E7;
+  --gold:      #E3A63E;   /* pendiente de pago */
+  --gold-soft: #FBEDD4;
+  --line:      #E7E1D0;
+  --shadow:    0 4px 14px rgba(31,58,46,0.08);
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-sm: 10px;
+  --font-display:'Fredoka', system-ui, sans-serif;
+  --font-body:'Inter', system-ui, sans-serif;
+}
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-body);
+  -webkit-tap-highlight-color:transparent;
+  overscroll-behavior-y:contain;
+}
+button, input{ font-family:inherit; }
+.hidden{ display:none !important; }
+
+#app{
+  max-width:480px;
+  margin:0 auto;
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  padding-bottom:88px; /* espacio para tabbar */
+}
+
+/* ============ TOPBAR ============ */
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:18px 18px 10px;
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-family:var(--font-display);
+  font-weight:600;
+  font-size:19px;
+  line-height:1.15;
+  color:var(--green-dark);
+}
+.brand-fruit{ font-size:28px; }
+.brand-text small{
+  font-family:var(--font-body);
+  font-weight:500;
+  font-size:11px;
+  color:var(--ink-soft);
+  letter-spacing:.02em;
+}
+.stock-pill{
+  background:var(--green);
+  color:#fff;
+  font-weight:600;
+  font-size:13px;
+  padding:8px 14px;
+  border-radius:999px;
+  white-space:nowrap;
+  box-shadow:var(--shadow);
+  transition:background .2s;
+}
+.stock-pill.low{ background:var(--coral); }
+
+/* ============ VIEWS ============ */
+.view{
+  flex:1;
+  padding:6px 18px 24px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+/* ============ CARDS ============ */
+.card, .counter-card{
+  background:var(--surface);
+  border-radius:var(--radius-lg);
+  padding:18px;
+  box-shadow:var(--shadow);
+}
+.card label, .counter-label{
+  display:block;
+  font-size:13px;
+  font-weight:600;
+  color:var(--ink-soft);
+  margin-bottom:8px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+#clienteInput{
+  width:100%;
+  border:2px solid var(--line);
+  border-radius:var(--radius-md);
+  padding:14px 16px;
+  font-size:17px;
+  font-weight:500;
+  color:var(--ink);
+  background:var(--bg);
+  outline:none;
+  transition:border-color .15s;
+}
+#clienteInput:focus{ border-color:var(--green); }
+
+.fiado-alert{
+  margin-top:12px;
+  background:var(--coral-soft);
+  border:1.5px solid var(--coral);
+  color:#8C1F30;
+  font-size:13.5px;
+  font-weight:600;
+  padding:10px 12px;
+  border-radius:var(--radius-sm);
+  line-height:1.4;
+}
+
+/* ============ COUNTER ============ */
+.counter-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  margin:6px 0 16px;
+}
+.counter-wrap.small{ margin:6px 0 4px; gap:10px; }
+.counter-btn{
+  width:60px; height:60px;
+  border-radius:50%;
+  border:none;
+  background:var(--green);
+  color:#fff;
+  font-size:30px;
+  font-weight:600;
+  line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:var(--shadow);
+  transition:transform .08s ease, background .15s;
+}
+.counter-btn:active{ transform:scale(0.9); background:var(--green-dark); }
+.counter-btn:disabled{ background:#C9CFC7; box-shadow:none; }
+.counter-btn.small{ width:44px; height:44px; font-size:22px; }
+
+.counter-display{
+  display:flex; align-items:baseline; gap:6px;
+  min-width:120px;
+  justify-content:center;
+}
+.kg-input{
+  width:110px;
+  border:none;
+  background:transparent;
+  text-align:right;
+  font-family:var(--font-display);
+  font-size:44px;
+  font-weight:600;
+  color:var(--ink);
+  outline:none;
+  -moz-appearance:textfield;
+}
+.kg-input::-webkit-outer-spin-button,
+.kg-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+.kg-unit{ font-size:16px; font-weight:600; color:var(--ink-soft); }
+
+.total-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:var(--coral-soft);
+  border-radius:var(--radius-md);
+  padding:12px 16px;
+  font-size:14px;
+  font-weight:600;
+  color:var(--ink-soft);
+}
+.total-row strong{
+  font-family:var(--font-display);
+  font-size:22px;
+  color:var(--coral);
+}
+
+/* ============ BUTTONS ============ */
+.btn-primary{
+  background:var(--green);
+  color:#fff;
+  border:none;
+  border-radius:var(--radius-md);
+  padding:18px;
+  font-size:17px;
+  font-weight:600;
+  box-shadow:var(--shadow);
+  transition:transform .08s ease, background .15s;
+}
+.btn-primary:active{ transform:scale(0.98); background:var(--green-dark); }
+
+.btn-secondary{
+  background:var(--green-soft);
+  color:var(--green-dark);
+  border:none;
+  border-radius:var(--radius-md);
+  padding:14px;
+  font-size:15px;
+  font-weight:600;
+}
+.btn-secondary:active{ transform:scale(0.98); }
+
+/* ============ TABBAR ============ */
+.tabbar{
+  position:fixed;
+  bottom:0; left:0; right:0;
+  max-width:480px;
+  margin:0 auto;
+  background:var(--surface);
+  display:flex;
+  border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.tab-btn{
+  flex:1;
+  border:none;
+  background:none;
+  padding:12px 0 10px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  font-size:12px;
+  font-weight:600;
+  color:var(--ink-soft);
+}
+.tab-icon{ font-size:22px; }
+.tab-btn.active{ color:var(--green); }
+
+/* ============ PEDIDOS LIST ============ */
+.pedidos-header{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding-top:4px;
+}
+.pedidos-header h2{
+  font-family:var(--font-display);
+  font-size:22px;
+  margin:0;
+  color:var(--green-dark);
+}
+.filter-chips{ display:flex; gap:8px; }
+.chip{
+  border:1.5px solid var(--line);
+  background:var(--surface);
+  color:var(--ink-soft);
+  font-weight:600;
+  font-size:13px;
+  padding:8px 14px;
+  border-radius:999px;
+}
+.chip.active{ background:var(--green); border-color:var(--green); color:#fff; }
+
+.pedidos-list{ display:flex; flex-direction:column; gap:12px; }
+
+.pedido-card{
+  background:var(--surface);
+  border-radius:var(--radius-md);
+  padding:14px 16px;
+  box-shadow:var(--shadow);
+}
+.pedido-main{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+.pedido-info{ display:flex; flex-direction:column; gap:2px; }
+.pedido-cliente{ font-weight:700; font-size:16px; color:var(--ink); }
+.pedido-detalle{ font-size:14px; color:var(--ink-soft); font-weight:500; }
+.pedido-fecha{ font-size:12px; color:#9BA79E; margin-top:2px; }
+
+.pedido-badges{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:6px;
+}
+.badge{
+  font-size:11px;
+  font-weight:700;
+  padding:4px 9px;
+  border-radius:999px;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+.badge.aviso{ background:var(--coral); color:#fff; }
+
+.badge-estado{
+  border:none;
+  font-size:12.5px;
+  font-weight:700;
+  padding:7px 12px;
+  border-radius:999px;
+  white-space:nowrap;
+}
+.badge-estado.pendiente{ background:var(--gold-soft); color:#8A5A0E; }
+.badge-estado.pagado{ background:var(--green-soft); color:var(--green-dark); }
+
+.btn-edit{
+  margin-top:10px;
+  width:100%;
+  background:var(--bg);
+  border:1.5px solid var(--line);
+  color:var(--ink-soft);
+  font-weight:600;
+  font-size:13.5px;
+  padding:9px;
+  border-radius:var(--radius-sm);
+}
+
+.edit-form{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px dashed var(--line);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.edit-form label{
+  font-size:12px;
+  font-weight:700;
+  color:var(--ink-soft);
+  text-transform:uppercase;
+  letter-spacing:.03em;
+  margin-top:6px;
+}
+.edit-cliente{
+  border:2px solid var(--line);
+  border-radius:var(--radius-sm);
+  padding:10px 12px;
+  font-size:15px;
+  background:var(--bg);
+  outline:none;
+}
+.edit-cliente:focus{ border-color:var(--green); }
+.edit-kg-input{ font-size:28px; }
+.edit-actions{ display:flex; gap:10px; margin-top:12px; }
+.edit-actions .btn-secondary, .edit-actions .btn-primary{ flex:1; padding:12px; font-size:14px; }
+
+.empty-state{
+  text-align:center;
+  color:var(--ink-soft);
+  font-size:14px;
+  padding:30px 10px;
+}
+
+/* ============ MODAL ============ */
+.modal-overlay{
+  position:fixed; inset:0;
+  background:rgba(31,58,46,0.45);
+  display:flex; align-items:center; justify-content:center;
+  padding:24px;
+  z-index:50;
+}
+.modal{
+  background:var(--surface);
+  border-radius:var(--radius-lg);
+  padding:22px;
+  width:100%;
+  max-width:340px;
+  box-shadow:0 12px 30px rgba(0,0,0,0.2);
+}
+.modal p{
+  margin:0 0 18px;
+  font-size:15.5px;
+  font-weight:600;
+  color:var(--ink);
+  text-align:center;
+  line-height:1.4;
+}
+.modal-actions{ display:flex; gap:10px; }
+.modal-actions button{ flex:1; }
+
+/* ============ TOAST ============ */
+.toast{
+  position:fixed;
+  bottom:96px;
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--green-dark);
+  color:#fff;
+  font-weight:600;
+  font-size:14px;
+  padding:12px 20px;
+  border-radius:999px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.25);
+  z-index:60;
+  animation:toastIn .2s ease;
+}
+@keyframes toastIn{
+  from{ opacity:0; transform:translate(-50%,10px); }
+  to{ opacity:1; transform:translate(-50%,0); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation:none !important; transition:none !important; }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "Mamones - Registro de ventas",
+  "short_name": "Mamones",
+  "description": "App para registrar ventas de mamones, controlar fiados e inventario",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F2E6",
+  "theme_color": "#2F5233",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
