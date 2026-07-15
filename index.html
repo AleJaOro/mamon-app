@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Mamones App</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B0D12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mamones">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Indicador de conexión a Firebase -->
+<div id="estado-conexion" class="estado-conexion oculto">
+  <span class="dot"></span> <span id="estado-texto">Conectando...</span>
+</div>
+
+<header class="topbar">
+  <div class="brand">🍈 Mamones</div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-view="venta">Venta</button>
+    <button class="tab-btn" data-view="pedidos">Pedidos</button>
+    <button class="tab-btn" data-view="stats">Estadísticas</button>
+  </nav>
+</header>
+
+<main id="app">
+
+  <!-- ===== VISTA: VENTA (HOME) ===== -->
+  <section id="view-venta" class="view active">
+    <form id="form-venta" class="card-glass fade-in">
+
+      <label class="field-label" for="cliente">Cliente</label>
+      <input type="text" id="cliente" placeholder="Nombre del cliente" autocomplete="off" required>
+      <div id="alerta-fiado" class="alerta-fiado oculto">⚠️ Este cliente tiene un pedido pendiente por cobrar</div>
+
+      <div class="kg-selector">
+        <button type="button" id="btn-restar" class="btn-kg" aria-label="Restar 0.5 kg">−</button>
+        <input type="number" id="kg-input" step="0.5" min="0.5" value="1" inputmode="decimal">
+        <button type="button" id="btn-sumar" class="btn-kg" aria-label="Sumar 0.5 kg">+</button>
+      </div>
+      <div class="kg-unidad">kg</div>
+
+      <label class="field-label" for="nota-venta">Nota (opcional)</label>
+      <input type="text" id="nota-venta" placeholder="Ej: entregar en la tarde" autocomplete="off">
+
+      <label class="field-label">Método de pago</label>
+      <div class="metodo-pago-selector" id="metodo-pago-venta">
+        <button type="button" class="metodo-btn active" data-metodo="Efectivo">💵 Efectivo</button>
+        <button type="button" class="metodo-btn" data-metodo="SinpeMovil">📱 Sinpe Móvil</button>
+      </div>
+
+      <div class="total-preview">
+        Total: <span id="total-preview">₡0</span>
+      </div>
+
+      <button type="submit" class="btn-principal">Registrar Pedido</button>
+    </form>
+  </section>
+
+  <!-- ===== VISTA: PEDIDOS ===== -->
+  <section id="view-pedidos" class="view">
+    <div class="acciones-pedidos fade-in">
+      <button id="btn-whatsapp" class="btn-secundario">Enviar WhatsApp</button>
+      <button id="btn-pdf" class="btn-secundario">Exportar PDF</button>
+    </div>
+
+    <div class="filtros-pedidos fade-in">
+      <button class="filtro-btn active" data-filtro="todos">Todos</button>
+      <button class="filtro-btn" data-filtro="pendiente">Pendientes</button>
+      <button class="filtro-btn" data-filtro="pagado">Pagados</button>
+    </div>
+
+    <div id="lista-pedidos" class="lista-pedidos">
+      <p class="vacio" id="pedidos-vacio">Aún no hay pedidos registrados.</p>
+    </div>
+  </section>
+
+  <!-- ===== VISTA: ESTADÍSTICAS ===== -->
+  <section id="view-stats" class="view">
+    <div class="card-glass filtros-stats fade-in">
+      <div class="filtro-fila">
+        <div class="filtro-campo">
+          <label>Desde</label>
+          <input type="date" id="stats-desde">
+        </div>
+        <div class="filtro-campo">
+          <label>Hasta</label>
+          <input type="date" id="stats-hasta">
+        </div>
+      </div>
+      <div class="filtro-fila">
+        <div class="filtro-campo full">
+          <label>Estado</label>
+          <select id="stats-estado">
+            <option value="todos">Todos</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="pagado">Pagados</option>
+          </select>
+        </div>
+      </div>
+      <div class="filtro-botones">
+        <button id="stats-aplicar" class="btn-secundario">Aplicar filtro</button>
+        <button id="stats-limpiar" class="btn-secundario btn-limpiar">Limpiar</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card ganancia fade-in">
+        <div class="stat-label">Ganancias (cobrado)</div>
+        <div class="stat-value" id="stat-ganancias">₡0</div>
+      </div>
+      <div class="stat-card pendiente fade-in">
+        <div class="stat-label">Faltante por cobrar</div>
+        <div class="stat-value" id="stat-pendiente">₡0</div>
+      </div>
+      <div class="stat-card kilos fade-in">
+        <div class="stat-label">Kilos vendidos</div>
+        <div class="stat-value" id="stat-kilos">0 kg</div>
+      </div>
+      <div class="stat-card pedidos-count fade-in">
+        <div class="stat-label">Total de pedidos</div>
+        <div class="stat-value" id="stat-pedidos">0</div>
+      </div>
+    </div>
+
+    <h3 class="stats-subtitulo">Ventas por día</h3>
+    <div id="stats-dias" class="stats-dias"></div>
+
+    <h3 class="stats-subtitulo">Mejores clientes</h3>
+    <div id="stats-clientes" class="stats-clientes"></div>
+  </section>
+
+</main>
+
+<!-- ===== MODAL DE CONFIRMACIÓN GENÉRICO ===== -->
+<div id="modal-confirm" class="modal-overlay oculto">
+  <div class="modal-box">
+    <p id="modal-texto">¿Seguro que deseas realizar esta acción?</p>
+    <div class="modal-botones">
+      <button id="modal-cancelar" class="btn-modal btn-cancelar">Cancelar</button>
+      <button id="modal-aceptar" class="btn-modal btn-aceptar">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL DE DETALLE / EDICIÓN DE PEDIDO ===== -->
+<div id="modal-detalle" class="modal-overlay oculto">
+  <div class="modal-box modal-detalle-box">
+    <h3>Detalle del pedido</h3>
+
+    <label class="field-label">Cliente</label>
+    <input type="text" id="det-cliente">
+
+    <label class="field-label">Kilos</label>
+    <div class="kg-selector kg-selector-mini">
+      <button type="button" id="det-btn-restar" class="btn-kg btn-kg-mini">−</button>
+      <input type="number" id="det-kg" step="0.5" min="0.5">
+      <button type="button" id="det-btn-sumar" class="btn-kg btn-kg-mini">+</button>
+    </div>
+
+    <label class="field-label">Nota</label>
+    <input type="text" id="det-nota" placeholder="Sin nota">
+
+    <label class="field-label">Método de pago</label>
+    <div class="metodo-pago-selector" id="metodo-pago-detalle">
+      <button type="button" class="metodo-btn" data-metodo="Efectivo">💵 Efectivo</button>
+      <button type="button" class="metodo-btn" data-metodo="SinpeMovil">📱 Sinpe Móvil</button>
+    </div>
+
+    <label class="field-label">Estado</label>
+    <div class="metodo-pago-selector" id="estado-detalle">
+      <button type="button" class="metodo-btn" data-estado="pendiente">Pendiente</button>
+      <button type="button" class="metodo-btn" data-estado="pagado">Pagado</button>
+    </div>
+
+    <div class="detalle-info" id="det-info-extra"></div>
+
+    <div class="modal-botones" style="margin-top:18px;">
+      <button id="det-cancelar" class="btn-modal btn-cancelar">Cancelar</button>
+      <button id="det-guardar" class="btn-modal btn-aceptar btn-guardar">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Contenedor de notificaciones (toasts) -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- SDKs de Firebase (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<!-- Librería para generar PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
