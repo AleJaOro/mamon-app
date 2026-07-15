@@ -18,13 +18,12 @@
 </head>
 <body>
 
-<!-- Indicador de conexión a Firebase -->
 <div id="estado-conexion" class="estado-conexion oculto">
   <span class="dot"></span> <span id="estado-texto">Conectando...</span>
 </div>
 
 <header class="topbar">
-  <div class="brand">🍈 Mamones</div>
+  <div class="brand"> Mamones</div>
   <nav class="tabs">
     <button class="tab-btn active" data-view="venta">Venta</button>
     <button class="tab-btn" data-view="pedidos">Pedidos</button>
@@ -34,7 +33,6 @@
 
 <main id="app">
 
-  <!-- ===== VISTA: VENTA (HOME) ===== -->
   <section id="view-venta" class="view active">
     <form id="form-venta" class="card-glass fade-in">
 
@@ -66,7 +64,6 @@
     </form>
   </section>
 
-  <!-- ===== VISTA: PEDIDOS ===== -->
   <section id="view-pedidos" class="view">
     <div class="acciones-pedidos fade-in">
       <button id="btn-whatsapp" class="btn-secundario">Enviar WhatsApp</button>
@@ -84,7 +81,6 @@
     </div>
   </section>
 
-  <!-- ===== VISTA: ESTADÍSTICAS ===== -->
   <section id="view-stats" class="view">
     <div class="card-glass filtros-stats fade-in">
       <div class="filtro-fila">
@@ -141,7 +137,6 @@
 
 </main>
 
-<!-- ===== MODAL DE CONFIRMACIÓN GENÉRICO ===== -->
 <div id="modal-confirm" class="modal-overlay oculto">
   <div class="modal-box">
     <p id="modal-texto">¿Seguro que deseas realizar esta acción?</p>
@@ -152,7 +147,6 @@
   </div>
 </div>
 
-<!-- ===== MODAL DE DETALLE / EDICIÓN DE PEDIDO ===== -->
 <div id="modal-detalle" class="modal-overlay oculto">
   <div class="modal-box modal-detalle-box">
     <h3>Detalle del pedido</h3>
@@ -191,16 +185,13 @@
   </div>
 </div>
 
-<!-- Contenedor de notificaciones (toasts) -->
 <div id="toast-container" class="toast-container"></div>
 
-<!-- SDKs de Firebase (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 
-<!-- Librería para generar PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="app.js"></script>
+<script src="app.js" defer></script>
 </body>
 </html>
